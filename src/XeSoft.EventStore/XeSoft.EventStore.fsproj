@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Const.fs" />
+    <Compile Include="Types.fs" />
+    <Compile Include="EventCodec.fs" />
+    <Compile Include="Init.fs" />
+    <Compile Include="InitSql.fs" />
+    <Compile Include="Sql.fs" />
+    <Compile Include="Extensions.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="Npgsql" Version="8.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="8.0.200" />
+  </ItemGroup>
+
+</Project>

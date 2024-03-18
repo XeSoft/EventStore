@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34701.33
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "XeSoft.EventStore", "src\XeSoft.EventStore\XeSoft.EventStore.fsproj", "{852963B8-90AB-4948-B027-B45CBB4DBFBE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7D1A2C8D-309B-4E22-80E3-DDAF3DD1BC29}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{852963B8-90AB-4948-B027-B45CBB4DBFBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{852963B8-90AB-4948-B027-B45CBB4DBFBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{852963B8-90AB-4948-B027-B45CBB4DBFBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{852963B8-90AB-4948-B027-B45CBB4DBFBE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F032F497-6F50-4BA9-A344-D142AEDA0AD9}
+	EndGlobalSection
+EndGlobal
