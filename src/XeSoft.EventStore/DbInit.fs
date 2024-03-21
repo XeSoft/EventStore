@@ -2,9 +2,22 @@
 
 // These statements are safe to run on an existing system.
 // This is in part because rules specify DO NOTHING INSTEAD.
-module InitSql =
+module DbInit =
 
     open XeSoft.EventStore.Const
+
+    let getTableNames =
+        """
+        SELECT c.relname AS TableName
+        FROM pg_catalog.pg_class c
+        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind IN ('r','')
+        AND n.nspname <> 'pg_catalog'
+        AND n.nspname <> 'information_schema'
+        AND n.nspname !~ '^pg_toast'
+        AND pg_catalog.pg_table_is_visible(c.oid)
+        ORDER BY 1
+        """
 
     // queries are interpolated only to guarantee (with code)
     // that names match externally used constants

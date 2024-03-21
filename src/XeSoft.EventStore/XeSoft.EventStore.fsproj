@@ -9,10 +9,10 @@
     <Compile Include="Const.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="EventCodec.fs" />
-    <Compile Include="Init.fs" />
-    <Compile Include="InitSql.fs" />
-    <Compile Include="Sql.fs" />
     <Compile Include="Extensions.fs" />
+    <Compile Include="DbInit.fs" />
+    <Compile Include="DbOp.fs" />
+    <Compile Include="Init.fs" />
   </ItemGroup>
 
   <ItemGroup>

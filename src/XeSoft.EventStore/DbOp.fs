@@ -1,12 +1,13 @@
 ﻿namespace XeSoft.EventStore
 
-module Sql =
+module DbOp =
 
     open Npgsql
     open NpgsqlTypes
     open System
 
     module Internal =
+
         let inline v<'T> (value: 'T)  (dbType: NpgsqlDbType option)
             : NpgsqlParameter =
             let param = NpgsqlParameter<'T>()
