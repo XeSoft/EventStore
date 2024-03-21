@@ -3,16 +3,23 @@
 module InternalTypes =
 
     open System
+    open System.Threading
 
     type EventType = string
     type EventData = string
     type MetaJson = string
 
+    type EventStoreConfig =
+        {
+            ConnectString: string
+            Cancel: CancellationToken
+        }
+
     type CommitEvent =
         {
             Type: EventType
             Data: EventData option
-            EventMeta: MetaJson option
+            Meta: MetaJson option
         }
 
     type StreamCommit =
@@ -44,6 +51,13 @@ module Types =
     type EventData = string
     type MetaJson = string
 
+    [<Struct>]
+    type StreamState<'state> =
+        {
+            State: 'state
+            Version: int
+        }
+
     type EventCodec<'event> =
         {
             Decodes: Map<EventType, EventData option -> 'event>
@@ -59,7 +73,7 @@ module Types =
     type CommitEvent<'event> =
         {
             Event: 'event
-            EventMeta: Map<string, obj>
+            Meta: Map<string, obj>
         }
 
     type StreamCommit<'event> =
@@ -67,7 +81,7 @@ module Types =
             StreamId: Guid
             ExpectedVersion: int
             Events: CommitEvent<'event> list
-            StreamMeta: Map<string, obj>
+            Meta: Map<string, obj>
         }
 
     type StreamEvent<'event> =

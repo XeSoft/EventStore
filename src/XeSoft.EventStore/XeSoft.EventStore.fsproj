@@ -12,7 +12,10 @@
     <Compile Include="Extensions.fs" />
     <Compile Include="DbInit.fs" />
     <Compile Include="DbOp.fs" />
+    <Compile Include="ReadFn.fs" />
+    <Compile Include="Sql.fs" />
     <Compile Include="Init.fs" />
+    <Compile Include="EventStore.fs" />
   </ItemGroup>
 
   <ItemGroup>

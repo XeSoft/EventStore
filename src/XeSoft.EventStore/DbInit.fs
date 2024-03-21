@@ -30,7 +30,7 @@ module DbInit =
             Version int NOT NULL,
             Type text NOT NULL,
             Data jsonb,
-            Meta jsonb NOT NULL,
+            Meta jsonb,
             LogDate timestamptz NOT NULL DEFAULT now(),
             CONSTRAINT pk_{Table.Event}_position PRIMARY KEY (Position),
             CONSTRAINT {Constraint.StreamIdVersion} UNIQUE (StreamId, Version)

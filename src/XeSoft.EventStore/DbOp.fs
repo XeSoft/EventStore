@@ -31,7 +31,7 @@ module DbOp =
 
     let append
         (streamId: Guid) (version: int)
-        (type_: string) (data: string option) (meta: string)
+        (type_: string) (data: string option) (meta: string option)
         =
         NpgsqlBatchCommand(
             """
