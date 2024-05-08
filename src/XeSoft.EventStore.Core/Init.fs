@@ -143,7 +143,7 @@ module Init =
             }
 
 
-    let run cfg =
+    let run connectString cancelToken =
         Dapper.addOptionTypeHandlers ()
-        Db.init cfg
+        Db.init connectString cancelToken
 
