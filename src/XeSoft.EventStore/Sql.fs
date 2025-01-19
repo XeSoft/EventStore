@@ -21,7 +21,7 @@ module Sql =
             return ()
         }
 
-    let read (processRead: NpgsqlDataReader -> CancellationToken -> Task<'T>) (cfg: EventStoreConfig) (cmds: NpgsqlBatchCommand seq) =
+    let read (cfg: EventStoreConfig) (processRead: NpgsqlDataReader -> CancellationToken -> Task<'T>) (cmds: NpgsqlBatchCommand seq) =
         task {
             use batch =  new NpgsqlBatch()
             for cmd in cmds do

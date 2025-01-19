@@ -125,14 +125,14 @@ module Init =
         let init cfg =
             task {
                 let getTables = [NpgsqlBatchCommand(DbInit.getTableNames)]
-                match! taskTryEx (Sql.read ReadFn.list<string> cfg) getTables with
+                match! taskTryEx (Sql.read cfg ReadFn.list<string>) getTables with
                 | Error ex -> return Error ex
                 | Ok tables ->
                     let ops = getSqlOps tables
                     match! runCreate cfg ops with
                     | Error ex -> return Error ex
                     | Ok () ->
-                        match! taskTryEx (Sql.read ReadFn.tryFirst<Pos> cfg) [NpgsqlBatchCommand(DbInit.getPositions)] with
+                        match! taskTryEx (Sql.read cfg ReadFn.tryFirst<Pos>) [NpgsqlBatchCommand(DbInit.getPositions)] with
                         | Error ex -> return Error ex
                         | Ok None -> return Error (exn "position counter missing")
                         | Ok (Some pos) ->

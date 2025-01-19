@@ -9,13 +9,13 @@ module EventStore =
     module Stream =
 
         let count (config: EventStoreConfig) (streamId: Guid) =
-            Sql.read ReadFn.scalar<int> config [DbOp.readCount streamId]
+            Sql.read config ReadFn.scalar<int> [DbOp.readCount streamId]
 
         let tryReadFirst (config: EventStoreConfig) (streamId: Guid) =
-            Sql.read ReadFn.tryFirst<StreamEvent> config [DbOp.readHead streamId]
+            Sql.read config ReadFn.tryFirst<StreamEvent> [DbOp.readHead streamId]
 
         let read (config: EventStoreConfig) (streamId: Guid) (sinceVersion: int) (count: int) =
-            Sql.read ReadFn.list<StreamEvent> config [DbOp.read streamId sinceVersion count]
+            Sql.read config ReadFn.list<StreamEvent> [DbOp.read streamId sinceVersion count]
 
         let append (config: EventStoreConfig) (commit: StreamCommit) =
             commit.Events
@@ -29,12 +29,12 @@ module EventStore =
     module Replay =
 
         let fromStateWhile
+            (config: EventStoreConfig)
             (canContinue: 'state -> bool)
             (apply: 'state -> StreamEvent -> 'state)
-            (initial: 'state)
-            (config: EventStoreConfig)
             (streamId: Guid)
             (sinceVersion: int)
+            (initial: 'state)
             =
             let initial_ = { State = initial; Version = sinceVersion }
             let canContinue_ (streamState: StreamState<'state>) =
@@ -42,41 +42,41 @@ module EventStore =
             let apply_ (streamState: StreamState<'state>) (event: StreamEvent) =
                 let state = apply streamState.State event
                 { State = state; Version = event.Version }
-            Sql.read (ReadFn.foldWhile canContinue_ apply_ initial_) config [DbOp.readUnbounded streamId sinceVersion]
+            Sql.read config (ReadFn.foldWhile canContinue_ apply_ initial_) [DbOp.readUnbounded streamId sinceVersion]
 
         let fromState
-            (apply: 'state -> StreamEvent -> 'state)
-            (initial: 'state)
             (config: EventStoreConfig)
+            (apply: 'state -> StreamEvent -> 'state)
             (streamId: Guid)
             (sinceVersion: int)
+            (initial: 'state)
             =
             let canContinue _ = true
-            fromStateWhile canContinue apply initial config streamId sinceVersion
+            fromStateWhile config canContinue apply streamId sinceVersion initial
 
         let allWhile
+            (config: EventStoreConfig)
             (canContinue: 'state -> bool)
             (apply: 'state -> StreamEvent -> 'state)
-            (initial: 'state)
-            (config: EventStoreConfig)
             (streamId: Guid)
+            (initial: 'state)
             =
-            fromStateWhile canContinue apply initial config streamId 0
+            fromStateWhile config canContinue apply streamId 0 initial
 
         let all
-            (apply: 'state -> StreamEvent -> 'state)
-            (initial: 'state)
             (config: EventStoreConfig)
+            (apply: 'state -> StreamEvent -> 'state)
             (streamId: Guid)
+            (initial: 'state)
             =
-            fromState apply initial config streamId 0
+            fromState config apply streamId 0 initial
 
 
     module AllStreams =
 
         let read (config: EventStoreConfig) (sincePosition: int64) (count: int) =
-            Sql.read ReadFn.list<StreamEvent> config [DbOp.readAll sincePosition count]
+            Sql.read config ReadFn.list<StreamEvent> [DbOp.readAll sincePosition count]
 
         let readOfTypes (config: EventStoreConfig) (sincePosition: int64) (types: string[]) (count: int) =
-            Sql.read ReadFn.list<StreamEvent> config [DbOp.readAllOfTypes sincePosition types count]
+            Sql.read config ReadFn.list<StreamEvent> [DbOp.readAllOfTypes sincePosition types count]
 
