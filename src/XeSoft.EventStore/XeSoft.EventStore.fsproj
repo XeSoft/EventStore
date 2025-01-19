@@ -6,6 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="ProcessManager\Types.fs" />
+    <Compile Include="ProcessManager\Process.fs" />
     <Compile Include="Const.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="EventCodec.fs" />
