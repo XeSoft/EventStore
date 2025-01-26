@@ -8,16 +8,25 @@
   <ItemGroup>
     <Compile Include="Const.fs" />
     <Compile Include="Types.fs" />
+    <Compile Include="Utils\PgIdentifier.fs" />
+    <Compile Include="Utils\Exn.fs" />
+    <Compile Include="Utils\FunctionalProcess\Default.fs" />
+    <Compile Include="Utils\FunctionalProcess\Services.fs" />
+    <Compile Include="Utils\FunctionalProcess\Process.fs" />
     <Compile Include="DbInit.fs" />
     <Compile Include="DbOp.fs" />
     <Compile Include="ReadFn.fs" />
     <Compile Include="Sql.fs" />
     <Compile Include="Init.fs" />
+    <Compile Include="Listener\EventNotice.fs" />
+    <Compile Include="Listener\NotifyListener.fs" />
+    <Compile Include="Listener\EventNoticeListener.fs" />
     <Compile Include="EventStore.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="FSharp.Control.TaskSeq" Version="0.4.0" />
     <PackageReference Include="Npgsql" Version="8.0.6" />
   </ItemGroup>
 
