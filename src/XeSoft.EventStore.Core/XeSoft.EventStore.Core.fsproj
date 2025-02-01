@@ -12,7 +12,7 @@
     <Compile Include="Utils\Exn.fs" />
     <Compile Include="Utils\FunctionalProcess\Default.fs" />
     <Compile Include="Utils\FunctionalProcess\Services.fs" />
-    <Compile Include="Utils\FunctionalProcess\Process.fs" />
+    <Compile Include="Utils\FunctionalProcess\SimpleProcess.fs" />
     <Compile Include="DbInit.fs" />
     <Compile Include="DbOp.fs" />
     <Compile Include="ReadFn.fs" />
