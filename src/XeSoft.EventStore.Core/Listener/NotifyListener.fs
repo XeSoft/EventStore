@@ -60,7 +60,7 @@ module NotifyListener =
                     cmd.Connection <- conn
                     cmd.ExecuteNonQueryAsync(cancelToken)
                 let mutable item = ""
-                while not cancelSource.IsCancellationRequested do
+                while true do
                     log.LogDebug("waiting for notification")
                     do! conn.WaitAsync(cancelToken)
                     while queue.TryDequeue(&item) do
