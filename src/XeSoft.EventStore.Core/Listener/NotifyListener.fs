@@ -17,7 +17,7 @@ module NotifyListener =
 
     By default, notifications are passively fetched during queries.
     Instead we want to actively listen for new notifications using WaitAsync.
-    It only waits tho. Notifications are still delivered via the event delegate.
+    It only waits. Notifications are still delivered via the event delegate.
     It may be possible for multiple notifications to be delivered after each wait.
     *)
 
@@ -27,16 +27,12 @@ module NotifyListener =
     /// The listener stops when CancelSource is canceled.
     /// Errors are logged using Log. On error, CancelSource is also canceled.
     let start
-        (log: ILogger)
-        (cancelSource: CancellationTokenSource)
-        (connectString: string)
+        ((log: ILogger, cancelSource: CancellationTokenSource, connectString: string) as _deps)
         (channelName: string)
-        : TaskSeq<Payload>
+        : TaskSeq<Payload> * CancellationTokenSource
         =
         taskSeq {
-            use _ = log.BeginScope("NotifyListener.start {Channel}", channelName)
             try
-
                 // mainly to rule out injection attacks for LISTEN cmd
                 if PgIdentifier.isInvalid channelName then
                     invalidArg (nameof channelName) "not a valid postgres identifier"
@@ -48,24 +44,23 @@ module NotifyListener =
                     builder.Pooling <- false
                     builder.Enlist <- false
                     builder.ToString()
-                let cancel = cancelSource.Token
                 use conn = new NpgsqlConnection(connStr)
                 let queue = System.Collections.Concurrent.ConcurrentQueue<Payload>()
                 use _ = conn.Notification.Subscribe(fun e -> queue.Enqueue(e.Payload))
                 do!
                     log.LogDebug("opening connection")
-                    conn.OpenAsync(cancel)
+                    conn.OpenAsync()
                 let! _ =
                     log.LogDebug("starting LISTEN")
                     use cmd = new NpgsqlCommand($"LISTEN {channelName}")
                     cmd.Connection <- conn
-                    cmd.ExecuteNonQueryAsync(cancel)
+                    cmd.ExecuteNonQueryAsync()
                 let mutable item = ""
-                while not cancel.IsCancellationRequested do
+                while not cancelSource.IsCancellationRequested do
                     log.LogDebug("waiting for notification")
-                    do! conn.WaitAsync(cancel)
+                    do! conn.WaitAsync()
                     while queue.TryDequeue(&item) do
-                        log.LogDebug($"yielding payload {item}")
+                        log.LogDebug("yielding payload @Payload", item)
                         yield item
 
                 log.LogDebug("canceled")
@@ -75,6 +70,6 @@ module NotifyListener =
             | ex ->
                 log.LogCritical(ex, "failed")
                 cancelSource.Cancel()
-        }
+        }, cancelSource
 
 
