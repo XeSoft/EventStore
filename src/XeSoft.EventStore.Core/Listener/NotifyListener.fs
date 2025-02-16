@@ -27,11 +27,14 @@ module NotifyListener =
     /// The listener stops when CancelSource is canceled.
     /// Errors are logged using Log. On error, CancelSource is also canceled.
     let start
-        ((log: ILogger, cancelSource: CancellationTokenSource, connectString: string) as _deps)
+        ((log: ILogger, connectString: string) as _deps)
         (channelName: string)
         : TaskSeq<Payload> * CancellationTokenSource
         =
+        let cts = new CancellationTokenSource()
         taskSeq {
+            use cancelSource = cts // dispose when stopped
+            let cancelToken = cancelSource.Token
             try
                 // mainly to rule out injection attacks for LISTEN cmd
                 if PgIdentifier.isInvalid channelName then
@@ -45,20 +48,21 @@ module NotifyListener =
                     builder.Enlist <- false
                     builder.ToString()
                 use conn = new NpgsqlConnection(connStr)
+                // using queue as interim buffer b/c of synchronous delegate API
                 let queue = System.Collections.Concurrent.ConcurrentQueue<Payload>()
                 use _ = conn.Notification.Subscribe(fun e -> queue.Enqueue(e.Payload))
                 do!
                     log.LogDebug("opening connection")
-                    conn.OpenAsync()
+                    conn.OpenAsync(cancelToken)
                 let! _ =
                     log.LogDebug("starting LISTEN")
                     use cmd = new NpgsqlCommand($"LISTEN {channelName}")
                     cmd.Connection <- conn
-                    cmd.ExecuteNonQueryAsync()
+                    cmd.ExecuteNonQueryAsync(cancelToken)
                 let mutable item = ""
                 while not cancelSource.IsCancellationRequested do
                     log.LogDebug("waiting for notification")
-                    do! conn.WaitAsync()
+                    do! conn.WaitAsync(cancelToken)
                     while queue.TryDequeue(&item) do
                         log.LogDebug("yielding payload @Payload", item)
                         yield item
@@ -70,6 +74,6 @@ module NotifyListener =
             | ex ->
                 log.LogCritical(ex, "failed")
                 cancelSource.Cancel()
-        }, cancelSource
+        }, cts
 
 
