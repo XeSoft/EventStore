@@ -24,8 +24,8 @@ type SideEffects<'effect, 'msg, 'service> = {
 module Process =
 
     open Microsoft.Extensions.Logging
-    open System
     open System.Threading.Channels
+    open XeSoft.EventStore.Core.Utils
 
     type ProcessResult<'effect> = {
         Effects: List<'effect>
@@ -63,16 +63,18 @@ module Process =
         loop initState msgs
 
     let run
-        ((log: ILogger, procCancelSource: CancellationTokenSource) as _deps)
+        ((log: ILogger) as _deps)
         (sideEffects: SideEffects<'effect, 'msg, 'service>)
         (proc: ProcessCore<'model, 'msg, 'effect, 'service>)
         (model: 'model)
         (msg: 'msg)
-        : Task<Result<'model, exn>> =
+        : Task<Result<'model, exn>> * CancellationTokenSource =
 
         // mechanisms of stopping
         // - msgCh.Complete() stops the read loop
         // - procCancelSource is for stopping from other threads
+
+        let cts: CancellationTokenSource = new CancellationTokenSource()
 
         let msgCh =
             let options = BoundedChannelOptions(
@@ -90,6 +92,8 @@ module Process =
             }
 
         task {
+            use procCancelSource = cts
+            let cancelToken = procCancelSource.Token
             let mutable model_ = model
             let mutable stopped_ = false
             let mutable activeSvcs_ = []
@@ -100,8 +104,8 @@ module Process =
                     do! msgCh.Writer.WriteAsync(msg)
                     let mutable msg_ = Unchecked.defaultof<'msg>
                     // WaitToReadAsync returns false if channel is marked complete
-                    while! msgCh.Reader.WaitToReadAsync() do
-                        while msgCh.Reader.TryRead(&msg_) && not stopped_ && not procCancelSource.IsCancellationRequested do
+                    while! msgCh.Reader.WaitToReadAsync(cancelToken) do
+                        while msgCh.Reader.TryRead(&msg_) && not stopped_ do
                             log.LogDebug("read msg @Msg", msg)
                             let nModel, nEffects = proc.Update model_ msg_
                             model_ <- nModel
@@ -135,19 +139,19 @@ module Process =
                                 for effect in nEffects do
                                     backgroundTask {
                                         try
+                                            cancelToken.ThrowIfCancellationRequested()
                                             log.LogDebug("starting effect @Effect", effect)
                                             let! effectMsg = sideEffects.Perform effect
                                             do! writeIfPossible effectMsg
-                                        with ex ->
+                                        with
+                                        | ex when Exn.isCancellation ex ->
+                                            log.LogDebug("effect canceled @Effect", effect)
+                                        | ex ->
                                             log.LogError(ex, "effect failed unhandled @Effect", effect)
                                             procCancelSource.Cancel()
                                     } |> ignore
-                        if stopped_ || procCancelSource.IsCancellationRequested then
-                            let wording = String.Join("/", [
-                                if stopped_ then yield "stopped"
-                                if procCancelSource.IsCancellationRequested then yield "cancelled"
-                            ])
-                            log.LogDebug(wording)
+                        if stopped_ then
+                            log.LogDebug("stopped")
                             msgCh.Writer.Complete()
                 finally
                     log.LogDebug("cleanup")
@@ -155,11 +159,20 @@ module Process =
                     msgCh.Writer.TryComplete() |> ignore
                     // stop services
                     for (svcId, cancelSource) in activeSvcs_ do
-                        log.LogDebug("service stopping @ServiceId", svcId)
-                        cancelSource.Cancel()
+                        if not cancelSource.IsCancellationRequested then
+                            log.LogDebug("service stopping @ServiceId", svcId)
+                            cancelSource.Cancel()
+                if not procCancelSource.IsCancellationRequested then
+                    procCancelSource.Cancel()
                 return Ok model_
-            with ex ->
+            with
+            | ex when Exn.isCancellation ex ->
+                log.LogDebug("canceled")
                 return Error ex
-        }
+            | ex ->
+                log.LogError(ex, "failed")
+                procCancelSource.Cancel()
+                return Error ex
+        }, cts
 
 
