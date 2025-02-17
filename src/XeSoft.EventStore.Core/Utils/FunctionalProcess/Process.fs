@@ -147,23 +147,24 @@ module Process =
                                         | ex when Exn.isCancellation ex ->
                                             log.LogDebug("effect canceled @Effect", effect)
                                         | ex ->
-                                            log.LogError(ex, "effect failed unhandled @Effect", effect)
+                                            // an effect should inform logic of an error
+                                            // else it is intentionally crashing the process
+                                            log.LogError(ex, "effect failed @Effect", effect)
                                             procCancelSource.Cancel()
                                     } |> ignore
                         if stopped_ then
                             log.LogDebug("stopped")
                             msgCh.Writer.Complete()
+                    // stop effects
+                    procCancelSource.Cancel()
                 finally
                     log.LogDebug("cleanup")
                     // in case we got here via crash so further writes are skipped
                     msgCh.Writer.TryComplete() |> ignore
                     // stop services
                     for (svcId, cancelSource) in activeSvcs_ do
-                        if not cancelSource.IsCancellationRequested then
-                            log.LogDebug("service stopping @ServiceId", svcId)
-                            cancelSource.Cancel()
-                if not procCancelSource.IsCancellationRequested then
-                    procCancelSource.Cancel()
+                        log.LogDebug("service stopping @ServiceId", svcId)
+                        cancelSource.Cancel()
                 return Ok model_
             with
             | ex when Exn.isCancellation ex ->
