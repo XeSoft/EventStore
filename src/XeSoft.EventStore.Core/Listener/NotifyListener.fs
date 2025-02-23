@@ -6,9 +6,13 @@ module NotifyListener =
     open Microsoft.Extensions.Logging
     open Npgsql
     open System.Threading
+    open XeSoft.EventStore.Core
     open XeSoft.EventStore.Core.Utils
 
     type Payload = string
+
+    type private LogMarker = interface end
+    let private logPrefix = Logger.getModuleFullName<LogMarker> ()
 
     (*
     ### Implementation explanation
@@ -27,12 +31,12 @@ module NotifyListener =
     /// The listener stops when CancelSource is canceled.
     /// Errors are logged using Log. On error, CancelSource is also canceled.
     let start
-        ((log: ILogger, connectString: string) as _deps)
-        (channelName: string)
+        { Log = log; ConnectString = connectString; EventNotifyChannel = channelName }
         : TaskSeq<Payload> * CancellationTokenSource
         =
         let cts = new CancellationTokenSource()
         taskSeq {
+            use _ = log.BeginScope($"{logPrefix}.start")
             use cancelSource = cts // dispose when stopped
             let cancelToken = cancelSource.Token
             try
@@ -52,10 +56,10 @@ module NotifyListener =
                 let queue = System.Collections.Concurrent.ConcurrentQueue<Payload>()
                 use _ = conn.Notification.Subscribe(fun e -> queue.Enqueue(e.Payload))
                 do!
-                    log.LogDebug("opening connection")
+                    log.LogInformation("opening connection")
                     conn.OpenAsync(cancelToken)
                 let! _ =
-                    log.LogDebug("starting LISTEN")
+                    log.LogInformation("starting LISTEN")
                     use cmd = new NpgsqlCommand($"LISTEN {channelName}")
                     cmd.Connection <- conn
                     cmd.ExecuteNonQueryAsync(cancelToken)
@@ -66,11 +70,9 @@ module NotifyListener =
                     while queue.TryDequeue(&item) do
                         log.LogDebug("yielding payload @Payload", item)
                         yield item
-
-                log.LogDebug("canceled")
             with
             | ex when Exn.isCancellation ex ->
-                log.LogDebug("canceled")
+                log.LogInformation("canceled")
             | ex ->
                 log.LogCritical(ex, "failed")
                 cancelSource.Cancel()

@@ -7,9 +7,11 @@
 
   <ItemGroup>
     <Compile Include="Const.fs" />
+    <Compile Include="Env.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Utils\PgIdentifier.fs" />
     <Compile Include="Utils\Exn.fs" />
+    <Compile Include="Utils\Logger.fs" />
     <Compile Include="Utils\FunctionalProcess\Default.fs" />
     <Compile Include="Utils\FunctionalProcess\SimpleProcess.fs" />
     <Compile Include="Utils\FunctionalProcess\Services.fs" />

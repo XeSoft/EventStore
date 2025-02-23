@@ -27,6 +27,9 @@ module Process =
     open System.Threading.Channels
     open XeSoft.EventStore.Core.Utils
 
+    type private LogMarker = interface end
+    let private logPrefix = Logger.getModuleFullName<LogMarker> ()
+
     type ProcessResult<'effect> = {
         Effects: List<'effect>
         Stopped: bool
@@ -72,7 +75,7 @@ module Process =
 
         // mechanisms of stopping
         // - msgCh.Complete() stops the read loop
-        // - procCancelSource is for stopping from other threads
+        // - cts/procCancelSource is for stopping from other threads
 
         let cts: CancellationTokenSource = new CancellationTokenSource()
 
@@ -92,6 +95,7 @@ module Process =
             }
 
         task {
+            use _ = log.BeginScope($"{logPrefix}.run")
             use procCancelSource = cts
             let cancelToken = procCancelSource.Token
             let mutable model_ = model
@@ -99,7 +103,7 @@ module Process =
             let mutable activeSvcs_ = []
             try // no try..catch..finally in F#, so we use try..finally in try..catch
                 try
-                    log.LogDebug("starting")
+                    log.LogInformation("starting")
                     // write initial msg
                     do! msgCh.Writer.WriteAsync(msg)
                     let mutable msg_ = Unchecked.defaultof<'msg>
@@ -119,12 +123,12 @@ module Process =
                                 for svcId in dupes do
                                     log.LogWarning("service duplicate id @ServiceId", svcId)
                                 for (svcId, cancelSource) in toStop do
-                                    log.LogDebug("service stopping @ServiceId", svcId)
+                                    log.LogInformation("service stopping @ServiceId", svcId)
                                     cancelSource.Cancel()
                                 let msgSources, startedSvcs =
                                     toStart
                                     |> List.map (fun (svcId, svc) ->
-                                        log.LogDebug("service starting @ServiceId @Service", svcId, svc)
+                                        log.LogInformation("service starting @ServiceId @Service", svcId, svc)
                                         let msgSource, cancelSource = sideEffects.StartService svc
                                         msgSource, (svcId, cancelSource)
                                     )
@@ -139,13 +143,13 @@ module Process =
                                 for effect in nEffects do
                                     backgroundTask {
                                         try
+                                            log.LogInformation("starting effect @Effect", effect)
                                             cancelToken.ThrowIfCancellationRequested()
-                                            log.LogDebug("starting effect @Effect", effect)
                                             let! effectMsg = sideEffects.Perform effect
                                             do! writeIfPossible effectMsg
                                         with
                                         | ex when Exn.isCancellation ex ->
-                                            log.LogDebug("effect canceled @Effect", effect)
+                                            log.LogInformation("effect canceled @Effect", effect)
                                         | ex ->
                                             // an effect should inform logic of an error
                                             // else it is intentionally crashing the process
@@ -153,22 +157,23 @@ module Process =
                                             procCancelSource.Cancel()
                                     } |> ignore
                         if stopped_ then
-                            log.LogDebug("stopped")
+                            log.LogInformation("stopped")
                             msgCh.Writer.Complete()
                     // stop effects
                     procCancelSource.Cancel()
                 finally
-                    log.LogDebug("cleanup")
+                    log.LogInformation("cleanup")
                     // in case we got here via crash so further writes are skipped
                     msgCh.Writer.TryComplete() |> ignore
                     // stop services
                     for (svcId, cancelSource) in activeSvcs_ do
-                        log.LogDebug("service stopping @ServiceId", svcId)
+                        log.LogInformation("service stopping @ServiceId", svcId)
                         cancelSource.Cancel()
+                log.LogInformation("complete")
                 return Ok model_
             with
             | ex when Exn.isCancellation ex ->
-                log.LogDebug("canceled")
+                log.LogInformation("canceled")
                 return Error ex
             | ex ->
                 log.LogError(ex, "failed")
